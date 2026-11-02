@@ -1,0 +1,127 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Base user account associating Firebase Auth UID with a portal role",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "role": { "type": "string", "enum": ["HOSPITAL", "DONOR"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Hospital": {
+      "title": "Hospital",
+      "description": "Hospital profile and emergency department registration",
+      "type": "object",
+      "properties": {
+        "hospitalId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "registrationNumber": { "type": "string", "maxLength": 60 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 256 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 100 },
+        "district": { "type": "string", "maxLength": 100 },
+        "state": { "type": "string", "maxLength": 100 },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "emergencyContact": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["hospitalId", "name", "registrationNumber", "phone", "email", "address", "city", "latitude", "longitude", "emergencyContact", "createdAt"]
+    },
+    "Donor": {
+      "title": "Donor",
+      "description": "Registered blood donor profile and availability status",
+      "type": "object",
+      "properties": {
+        "donorId": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "bloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 256 },
+        "city": { "type": "string", "maxLength": 100 },
+        "district": { "type": "string", "maxLength": 100 },
+        "state": { "type": "string", "maxLength": 100 },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "availability": { "type": "string", "enum": ["AVAILABLE", "UNAVAILABLE", "RECENTLY_DONATED"] },
+        "lastDonationDate": { "type": "string", "maxLength": 40 },
+        "totalDonations": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["donorId", "fullName", "bloodGroup", "phone", "email", "city", "latitude", "longitude", "availability", "createdAt"]
+    },
+    "Requisition": {
+      "title": "Requisition",
+      "description": "Emergency blood requisition issued by a registered hospital",
+      "type": "object",
+      "properties": {
+        "requisitionId": { "type": "string", "maxLength": 128 },
+        "hospitalId": { "type": "string", "maxLength": 128 },
+        "hospitalName": { "type": "string", "maxLength": 150 },
+        "hospitalPhone": { "type": "string", "maxLength": 30 },
+        "bloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "unitsRequired": { "type": "number" },
+        "urgency": { "type": "string", "enum": ["IMMEDIATE", "CRITICAL", "HIGH", "NORMAL"] },
+        "status": { "type": "string", "enum": ["OPEN", "FULFILLED", "CANCELLED"] },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 100 },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "radiusKm": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["requisitionId", "hospitalId", "hospitalName", "hospitalPhone", "bloodGroup", "unitsRequired", "urgency", "status", "address", "city", "latitude", "longitude", "radiusKm", "createdAt"]
+    },
+    "Response": {
+      "title": "Response",
+      "description": "Donor acceptance or decline response to an emergency requisition",
+      "type": "object",
+      "properties": {
+        "responseId": { "type": "string", "maxLength": 256 },
+        "requisitionId": { "type": "string", "maxLength": 128 },
+        "donorId": { "type": "string", "maxLength": 128 },
+        "hospitalId": { "type": "string", "maxLength": 128 },
+        "donorName": { "type": "string", "maxLength": 150 },
+        "donorBloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "donorPhone": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "enum": ["ACCEPTED", "DECLINED"] },
+        "distanceKm": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["responseId", "requisitionId", "donorId", "hospitalId", "donorName", "donorBloodGroup", "donorPhone", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User portal identity routing mapping uid to role"
+    },
+    "/hospitals/{hospitalId}": {
+      "schema": "Hospital",
+      "description": "Hospital organization profiles keyed by auth UID"
+    },
+    "/donors/{donorId}": {
+      "schema": "Donor",
+      "description": "Blood donor profiles keyed by auth UID"
+    },
+    "/requisitions/{requisitionId}": {
+      "schema": "Requisition",
+      "description": "Emergency blood requisitions created by hospitals"
+    },
+    "/responses/{responseId}": {
+      "schema": "Response",
+      "description": "Donor response actions keyed by {requisitionId}_{donorId}"
+    }
+  }
+}

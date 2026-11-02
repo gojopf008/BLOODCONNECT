@@ -1,0 +1,115 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net - Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
+        data.email is string && data.email.size() <= 256 &&
+        data.role in ['HOSPITAL', 'DONOR'];
+    }
+
+    function isValidHospital(data) {
+      return data.keys().hasAll(['hospitalId', 'name', 'registrationNumber', 'phone', 'email', 'address', 'city', 'latitude', 'longitude', 'emergencyContact', 'createdAt']) &&
+        data.keys().hasOnly(['hospitalId', 'name', 'registrationNumber', 'phone', 'email', 'address', 'city', 'district', 'state', 'latitude', 'longitude', 'emergencyContact', 'createdAt', 'updatedAt']) &&
+        data.hospitalId is string && data.hospitalId == request.auth.uid &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+        data.phone is string && data.phone.size() <= 30 &&
+        data.latitude is number && data.longitude is number;
+    }
+
+    function isValidDonor(data) {
+      return data.keys().hasAll(['donorId', 'fullName', 'bloodGroup', 'phone', 'email', 'city', 'latitude', 'longitude', 'availability', 'createdAt']) &&
+        data.keys().hasOnly(['donorId', 'fullName', 'bloodGroup', 'phone', 'email', 'city', 'district', 'state', 'latitude', 'longitude', 'availability', 'lastDonationDate', 'totalDonations', 'createdAt', 'updatedAt']) &&
+        data.donorId is string && data.donorId == request.auth.uid &&
+        data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 150 &&
+        data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] &&
+        data.availability in ['AVAILABLE', 'UNAVAILABLE', 'RECENTLY_DONATED'] &&
+        data.latitude is number && data.longitude is number;
+    }
+
+    function isValidRequisition(data) {
+      return data.keys().hasAll(['requisitionId', 'hospitalId', 'hospitalName', 'hospitalPhone', 'bloodGroup', 'unitsRequired', 'urgency', 'status', 'address', 'city', 'latitude', 'longitude', 'radiusKm', 'createdAt']) &&
+        data.keys().hasOnly(['requisitionId', 'hospitalId', 'hospitalName', 'hospitalPhone', 'bloodGroup', 'unitsRequired', 'urgency', 'status', 'address', 'city', 'latitude', 'longitude', 'radiusKm', 'notes', 'createdAt', 'updatedAt']) &&
+        data.hospitalId is string && data.hospitalId == request.auth.uid &&
+        data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] &&
+        data.unitsRequired is number && data.unitsRequired > 0 &&
+        data.urgency in ['IMMEDIATE', 'CRITICAL', 'HIGH', 'NORMAL'] &&
+        data.status in ['OPEN', 'FULFILLED', 'CANCELLED'] &&
+        data.radiusKm is number && data.radiusKm > 0;
+    }
+
+    function isValidResponse(data) {
+      return data.keys().hasAll(['responseId', 'requisitionId', 'donorId', 'hospitalId', 'donorName', 'donorBloodGroup', 'donorPhone', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['responseId', 'requisitionId', 'donorId', 'hospitalId', 'donorName', 'donorBloodGroup', 'donorPhone', 'status', 'distanceKm', 'createdAt', 'updatedAt']) &&
+        data.donorId is string && data.donorId == request.auth.uid &&
+        data.status in ['ACCEPTED', 'DECLINED'] &&
+        data.donorBloodGroup in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId);
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming()) && incoming().uid == existing().uid;
+    }
+
+    // Hospitals collection
+    match /hospitals/{hospitalId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(hospitalId) && request.auth.uid == hospitalId && isValidHospital(incoming());
+      allow update: if isSignedIn() && isValidId(hospitalId) && request.auth.uid == hospitalId && isValidHospital(incoming()) && incoming().hospitalId == existing().hospitalId;
+    }
+
+    // Donors collection
+    match /donors/{donorId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(donorId) && request.auth.uid == donorId && isValidDonor(incoming());
+      allow update: if isSignedIn() && isValidId(donorId) && request.auth.uid == donorId && isValidDonor(incoming()) && incoming().donorId == existing().donorId;
+    }
+
+    // Requisitions collection
+    match /requisitions/{requisitionId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(requisitionId) && incoming().hospitalId == request.auth.uid && isValidRequisition(incoming());
+      allow update: if isSignedIn() && isValidId(requisitionId) && existing().hospitalId == request.auth.uid && incoming().hospitalId == existing().hospitalId && isValidRequisition(incoming());
+      allow delete: if isSignedIn() && existing().hospitalId == request.auth.uid;
+    }
+
+    // Responses collection
+    match /responses/{responseId} {
+      allow get: if isSignedIn() && (resource.data.donorId == request.auth.uid || resource.data.hospitalId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.donorId == request.auth.uid || resource.data.hospitalId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().donorId == request.auth.uid && isValidResponse(incoming());
+      allow update: if isSignedIn() && existing().donorId == request.auth.uid && incoming().donorId == existing().donorId && isValidResponse(incoming());
+    }
+  }
+}

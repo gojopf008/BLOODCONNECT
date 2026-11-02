@@ -1,0 +1,6 @@
+{
+  "name": "BLOODCONNECT AI",
+  "description": "Intelligent emergency blood requisition, donor matching, and XGBoost response prioritization platform connecting hospitals with eligible blood donors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
